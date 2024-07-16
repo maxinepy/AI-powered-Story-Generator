@@ -63,19 +63,48 @@ def image_generator(story):
 api_key = st.secrets['OPENAI_SECRET']
 client = OpenAI(api_key = api_key)
 
-with st.form(key=' '):
-  st.write('This is for user to key in information')
-  msg = st.text_input(label="Some keywords to generate a story")
-  submitted = st.form_submit_button(label='Submit')
-  if submitted:
-    st.balloons()
-    story = story_generator(msg)
+st.header(':blue[_AI Story Generator_] :open_book:', divider= 'rainbow')
+
+if 'story' not in st.session_state:
+    st.session_state.story = None
+if 'design_prompt' not in st.session_state:
+    st.session_state.design_prompt = None
+if 'image_url' not in st.session_state:
+    st.session_state.image_url = None
+
+# form to generate story
+with st.form(key='story_form'):
+    st.write('Enter keywords to generate a story')
+    msg = st.text_input(label="Some keywords to generate a story")
+    submitted = st.form_submit_button(label='Submit')
+    if submitted and msg != '':
+        st.balloons()
+        st.session_state.story = story_generator(msg)
+        st.session_state.design_prompt = None
+        st.session_state.image_url = None
+
+# display the generated story
+if st.session_state.story:
     st.caption('Story')
-    st.write(story)
-    design_prompt = refine_image(story)
-    st.caption('Design Prompt')
-    st.write(design_prompt)
-    image_url = image_generator(design_prompt)
-    if image_url is not None:
-      st.caption('Image')
-      st.image(image_url)
+    st.write(st.session_state.story)
+    # follow-up form to generate cover image
+    with st.form(key='image_form'):
+        st.write('Would you like to generate a cover image for this story?')
+        yes = st.form_submit_button('Yes')
+        if yes:
+            st.session_state.design_prompt = refine_image(st.session_state.story)
+            st.session_state.image_url = image_generator(st.session_state.design_prompt)
+
+# display cover image
+if st.session_state.image_url:
+    st.caption('Cover Image')
+    st.image(st.session_state.image_url)
+
+if st.session_state.design_prompt:
+    # follow-up form to display image prompt
+    with st.form(key='design_prompt_form'):
+        st.write('Would you like to see the image prompt?')
+        yes = st.form_submit_button('Yes')
+        if yes:
+            st.caption('Design Prompt')
+            st.write(st.session_state.design_prompt)
